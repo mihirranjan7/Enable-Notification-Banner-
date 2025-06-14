@@ -1,0 +1,67 @@
+<script>
+function insertBannerBeforeTopics() {
+  const topicList = document.querySelector(
+    '.topic-list, .latest-topic-list, .category-list, .navigation-container'
+  );
+  if (!topicList) return;
+  if (document.getElementById('notify-banner')) return;
+
+  if ('Notification' in window && Notification.permission === 'granted') return;
+
+  const now = Date.now();
+  const lastShown = parseInt(localStorage.getItem('notify_last_shown') || '0', 10);
+  const twoDays = 2 * 24 * 60 * 60 * 1000;
+  if (now - lastShown < twoDays) return;
+
+  localStorage.setItem('notify_last_shown', now.toString());
+
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const bgColor = isDark ? '#223344' : '#e6f0ff';
+  const iconColor = isDark ? '#ffffff' : '#000000';
+
+  const bellSVG = `
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="${iconColor}"
+      stroke-width="1.8" viewBox="0 0 24 24" width="18" height="18">
+      <path stroke-linecap="round" stroke-linejoin="round"
+        d="M15 17h5l-1.405-1.405C18.21 14.79 18 13.918 18 13V9a6 6 0 00-12 0v4c0 .918-.21 1.79-.595 2.595L4 17h5m6 0a3 3 0 01-6 0h6z"/>
+    </svg>`;
+
+  const banner = document.createElement('div');
+  banner.id = "notify-banner";
+  banner.setAttribute("role", "region");
+  banner.setAttribute("aria-label", "Notification Prompt");
+  banner.innerHTML = `
+    <div style="margin: 0; display: flex; align-items: center; justify-content: center; gap: 0.6em; font-size: 1em; padding: 0.4em 0; color: ${iconColor};">
+      <span>To receive notifications of chat and replies</span>
+      <button id="notify-btn" style="all: unset; display: flex; align-items: center; justify-content: center; cursor: pointer; background: ${bgColor}; color: ${iconColor}; border-radius: 999px; padding: 0.4em; width: 32px; height: 32px;">
+        ${bellSVG}
+      </button>
+      <button id="notify-close" style="all: unset; display: flex; align-items: center; justify-content: center; cursor: pointer; background: ${bgColor}; color: ${iconColor}; border-radius: 999px; padding: 0.4em; font-size: 1.2em; width: 32px; height: 32px;">
+        &times;
+      </button>
+    </div>
+  `;
+
+  topicList.parentNode.insertBefore(banner, topicList);
+
+  function removeBanner() {
+    banner.remove();
+  }
+
+  document.getElementById("notify-btn").onclick = function () {
+    if ("Notification" in window) {
+      Notification.requestPermission().then(removeBanner);
+    } else {
+      alert("Notifications not supported in this browser.");
+    }
+  };
+
+  document.getElementById("notify-close").onclick = removeBanner;
+}
+
+function onRouteChange() {
+  setTimeout(insertBannerBeforeTopics, 200);
+}
+document.addEventListener("DOMContentLoaded", onRouteChange);
+document.addEventListener("turbolinks:load", onRouteChange);
+</script>
